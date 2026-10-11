@@ -1,8 +1,8 @@
-# nexus-mcp
+# Nexus-MCP
 
 MCP server for Notion + Supabase. One search across both, writes are off by default because I don't trust models with my data.
 
-[![CI](https://github.com/madhvendrasinghsolanki/nexus-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/madhvendrasinghsolanki/nexus-mcp/actions)
+[![CI](https://github.com/madhvendrasinghsolanki/Nexus-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/madhvendrasinghsolanki/Nexus-MCP/actions/workflows/ci.yml)
 
 ---
 
