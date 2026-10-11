@@ -3,11 +3,13 @@
 import asyncio
 import socket
 import sys
+from pathlib import Path
 
 import pytest
 from mcp import Client
 
 pytestmark = pytest.mark.integration
+SOURCE_ROOT = str(Path(__file__).resolve().parents[2] / "src")
 
 
 def free_port() -> int:
@@ -39,7 +41,12 @@ async def test_streamable_http_serves_tools_at_mcp_path() -> None:
         "nexus_mcp",
         "--transport",
         "streamable-http",
-        env={"NEXUS_DEMO_MODE": "true", "NEXUS_PORT": str(port), "PATH": "/usr/bin:/bin"},
+        env={
+            "NEXUS_DEMO_MODE": "true",
+            "NEXUS_PORT": str(port),
+            "PATH": "/usr/bin:/bin",
+            "PYTHONPATH": SOURCE_ROOT,
+        },
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.DEVNULL,
     )

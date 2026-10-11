@@ -1,19 +1,26 @@
 """Spawn the real CLI over stdio: proves logs never corrupt the protocol stream."""
 
+import os
 import sys
+from pathlib import Path
 
 import pytest
 from mcp import Client
 from mcp.client.stdio import StdioServerParameters
 
 pytestmark = pytest.mark.integration
+SOURCE_ROOT = str(Path(__file__).resolve().parents[2] / "src")
 
 
 async def test_real_stdio_server_process() -> None:
     params = StdioServerParameters(
         command=sys.executable,
         args=["-m", "nexus_mcp"],
-        env={"NEXUS_LOG_LEVEL": "DEBUG", "PATH": "/usr/bin:/bin"},
+        env={
+            "NEXUS_LOG_LEVEL": "DEBUG",
+            "PATH": "/usr/bin:/bin",
+            "PYTHONPATH": SOURCE_ROOT,
+        },
     )
     async with Client(params) as client:
         result = await client.call_tool("server_info", {})
@@ -30,6 +37,11 @@ def test_embedding_without_configure_logging_never_writes_stdout() -> None:
         "import nexus_mcp.server\n"
     )
     out = subprocess.run(  # noqa: S603
-        [sys.executable, "-c", code], capture_output=True, text=True, check=True, timeout=30
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+        env={**os.environ, "PYTHONPATH": SOURCE_ROOT},
     )
     assert out.stdout == "" and "hello" in out.stderr and "abc" not in out.stderr

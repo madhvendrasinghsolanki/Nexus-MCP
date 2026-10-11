@@ -2,6 +2,8 @@ name: CI
 on:
   push: { branches: [main] }
   pull_request:
+permissions:
+  contents: read
 jobs:
   python:
     runs-on: ubuntu-latest
@@ -14,7 +16,66 @@ jobs:
         env: { UV_PYTHON: "${{ matrix.python-version }}" }
       - run: . .venv/bin/activate && ruff check . && ruff format --check .
       - run: . .venv/bin/activate && mypy
-      - run: . .venv/bin/activate && pytest -q --cov --cov-fail-under=95
+      - name: Test and measure coverage
+        id: python-quality
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p reports
+          . .venv/bin/activate
+          set +e
+          pytest -q \
+            --cov=src/nexus_mcp \
+            --cov-branch \
+            --cov-report=term-missing \
+            --cov-report=xml:reports/coverage.xml \
+            --cov-report=json:reports/coverage.json \
+            --cov-report=html:reports/htmlcov \
+            --junitxml=reports/pytest.xml \
+            --cov-fail-under=95
+          test_exit=$?
+          set -e
+          set -o pipefail
+          echo "test_exit=$test_exit" >> "$GITHUB_OUTPUT"
+
+          report_exit=0
+          if [ -f reports/coverage.json ] && [ -f reports/pytest.xml ]; then
+            python scripts/coverage_report.py reports/coverage.json \
+              --junitxml reports/pytest.xml \
+              --output-json reports/quality.json | tee -a "$GITHUB_STEP_SUMMARY"
+            report_exit=$?
+          else
+            echo "### Python tests and coverage" >> "$GITHUB_STEP_SUMMARY"
+            echo "Coverage or JUnit output was unavailable." >> "$GITHUB_STEP_SUMMARY"
+            report_exit=1
+          fi
+          echo "report_exit=$report_exit" >> "$GITHUB_OUTPUT"
+      - name: Upload coverage and test reports
+        if: matrix.python-version == '3.13' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-quality-reports
+          path: reports/
+          if-no-files-found: error
+      - name: Publish coverage
+        if: matrix.python-version == '3.13' && steps.python-quality.outputs.test_exit == '0' && steps.python-quality.outputs.report_exit == '0'
+        uses: coverallsapp/github-action@v2
+        with:
+          file: reports/coverage.xml
+      - name: Enforce Python quality result
+        if: always()
+        shell: bash
+        run: |
+          test_exit="${{ steps.python-quality.outputs.test_exit }}"
+          report_exit="${{ steps.python-quality.outputs.report_exit }}"
+          if [ "$test_exit" != "0" ]; then
+            echo "pytest/coverage exited with status $test_exit"
+            exit "$test_exit"
+          fi
+          if [ "$report_exit" != "0" ]; then
+            echo "coverage report generation exited with status $report_exit"
+            exit "$report_exit"
+          fi
   audit:
     runs-on: ubuntu-latest
     steps:
@@ -49,3 +110,12 @@ jobs:
         working-directory: clients/ts
       - run: npm install --no-audit --no-fund && npm run selftest && node check-selftest.mjs
         working-directory: evals
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4

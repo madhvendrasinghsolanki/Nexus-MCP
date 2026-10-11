@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from nexus_mcp.core.config import Settings
+from nexus_mcp.core.config import Settings, get_settings
 
 
 def make(**env: object) -> Settings:
@@ -33,6 +33,12 @@ def test_public_summary_never_leaks_secrets() -> None:
 
 def test_secrets_are_masked_in_repr() -> None:
     assert "topsecretvalue" not in repr(make(NOTION_TOKEN="secret_topsecretvalue"))
+
+
+def test_blank_secret_values_are_treated_as_unset() -> None:
+    s = make(NEXUS_HTTP_AUTH_TOKEN="  ", SUPABASE_KEY="", NOTION_TOKEN="\t")
+    assert s.http_auth_token is None
+    assert not s.supabase_configured and not s.notion_configured
 
 
 def test_invalid_port_rejected() -> None:
@@ -76,3 +82,27 @@ def test_notion_policy_parsing() -> None:
         make(NOTION_WRITABLE_PARENTS="not-an-id")
     with pytest.raises(ValidationError):
         make(NOTION_API_VERSION="latest")
+
+
+def test_allowed_hosts_and_warnings_are_safe() -> None:
+    s = make(
+        NEXUS_TRANSPORT="streamable-http",
+        NEXUS_ALLOWED_HOSTS=" mcp.example.com, , proxy.example.com ",
+    )
+    assert s.allowed_host_list == ["mcp.example.com", "proxy.example.com"]
+    assert any("without authentication" in warning for warning in s.warnings)
+
+    writes = make(NEXUS_ALLOW_WRITES=True)
+    assert any("no writable" in warning for warning in writes.warnings)
+    assert any("AUDIT" in warning for warning in writes.warnings)
+
+
+def test_get_settings_is_cached_and_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    get_settings.cache_clear()
+    monkeypatch.setenv("NEXUS_MAX_RESULTS", "7")
+    try:
+        first = get_settings()
+        second = get_settings()
+        assert first is second and first.max_results == 7
+    finally:
+        get_settings.cache_clear()

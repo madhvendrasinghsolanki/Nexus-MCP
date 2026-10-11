@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from nexus_mcp.cli import main
 from nexus_mcp.core.config import Settings
-from nexus_mcp.http_app import BearerAuthMiddleware, transport_security
+from nexus_mcp.http_app import BearerAuthMiddleware, build_http_app, transport_security
 
 TOKEN = "t" * 40
 
@@ -106,6 +106,24 @@ def test_transport_security_allows_only_expected_hosts() -> None:
     assert (
         "mcp.example.com" in ts2.allowed_hosts and "https://mcp.example.com" in ts2.allowed_origins
     )
+
+
+def test_build_http_app_applies_auth_only_when_configured() -> None:
+    downstream_app = object()
+    seen: dict[str, object] = {}
+
+    class FakeServer:
+        def streamable_http_app(self, **kwargs: object) -> object:
+            seen.update(kwargs)
+            return downstream_app
+
+    loopback = make(NEXUS_TRANSPORT="streamable-http")
+    assert build_http_app(FakeServer(), loopback) is downstream_app  # type: ignore[arg-type]
+    assert seen["host"] == "127.0.0.1"
+
+    authenticated = make(NEXUS_TRANSPORT="streamable-http", NEXUS_HTTP_AUTH_TOKEN=TOKEN)
+    wrapped = build_http_app(FakeServer(), authenticated)
+    assert isinstance(wrapped, BearerAuthMiddleware)
 
 
 def test_warnings() -> None:

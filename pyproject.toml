@@ -44,7 +44,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["nexus_mcp"]
+source = ["src/nexus_mcp"]
 branch = true
 
 [tool.coverage.report]
@@ -61,6 +61,7 @@ select = ["E", "F", "I", "B", "UP", "S", "ASYNC", "SIM", "RUF"]
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["E402"]
 "tests/**" = ["S105", "S106"]
 
 [tool.mypy]

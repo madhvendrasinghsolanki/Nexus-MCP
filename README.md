@@ -122,7 +122,7 @@ Full config reference in [.env.example](.env.example). Nothing secret ever touch
 
 ## Tests / quality stuff
 
-354 Python tests, 20 TypeScript tests, 97% coverage. Includes property-based tests (Hypothesis), a contract snapshot for the tool schema, and a Promptfoo eval suite.
+The CI workflow is configured to run the Python and TypeScript suites, generate the Python test count plus statement, executable-line and branch coverage in the GitHub Actions summary, and upload XML/JSON/HTML reports as a quality artifact. Python function coverage is not a native metric provided by coverage.py and is therefore reported as unavailable. Includes property-based tests (Hypothesis), a contract snapshot for the tool schema, and a Promptfoo eval suite.
 
 ```
 make check        # ruff + mypy --strict + pytest

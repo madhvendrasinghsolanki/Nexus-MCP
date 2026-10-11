@@ -13,7 +13,7 @@ from nexus_mcp.core.errors import (
     WriteNotPermitted,
 )
 from nexus_mcp.providers.supabase import SupabaseSource, create_supabase_source
-from nexus_mcp.providers.supabase.filters import Filter
+from nexus_mcp.providers.supabase.filters import Filter, OrderBy
 from tests.support.postgrest_fake import FakePostgrest, sample_tables
 
 
@@ -65,12 +65,74 @@ async def test_describe_falls_back_to_sample_row_without_openapi() -> None:
         await src.list_tables()
 
 
+async def test_schema_listing_falls_back_to_the_configured_allowlist() -> None:
+    src = make_source(
+        FakePostgrest(sample_tables(), openapi=False), SUPABASE_ALLOWED_TABLES="notes"
+    )
+    assert [table.name for table in await src.list_tables()] == ["notes"]
+
+
+async def test_malformed_openapi_document_is_treated_as_unavailable() -> None:
+    fake = FakePostgrest(sample_tables())
+    fallback = fake.transport()
+
+    def malformed(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/rest/v1/":
+            return httpx.Response(200, json={"not": "an openapi document"})
+        return fallback.handler(request)  # type: ignore[attr-defined,no-any-return]
+
+    settings = {
+        "SUPABASE_URL": "https://proj.supabase.co",
+        "SUPABASE_KEY": "test-key-value",
+    }
+    src = SupabaseSource(
+        Settings(_env_file=None, **settings), transport=httpx.MockTransport(malformed)
+    )
+    with pytest.raises(ProviderError, match="introspection"):
+        await src.list_tables()
+
+
+async def test_describe_empty_table_without_openapi() -> None:
+    fake = FakePostgrest({"empty": []}, openapi=False)
+    src = make_source(fake, SUPABASE_ALLOWED_TABLES="empty")
+    info = await src.describe_table("empty")
+    assert info.columns_inferred and info.columns == []
+
+
+async def test_count_rejects_malformed_content_range() -> None:
+    fake = FakePostgrest(sample_tables())
+    fallback = fake.transport()
+
+    def malformed_count(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET" and request.url.path.endswith("/notes"):
+            return httpx.Response(200, json=[], headers={"content-range": "*/unknown"})
+        return fallback.handler(request)  # type: ignore[attr-defined,no-any-return]
+
+    src = SupabaseSource(
+        Settings(
+            _env_file=None,
+            SUPABASE_URL="https://proj.supabase.co",
+            SUPABASE_KEY="test-key-value",
+        ),
+        transport=httpx.MockTransport(malformed_count),
+    )
+    with pytest.raises(ProviderError, match="number of matching rows"):
+        await src.count("notes", open_notes)
+
+
 async def test_query_filters_paging_and_cap() -> None:
     src = make_source(FakePostgrest(sample_tables()), NEXUS_MAX_RESULTS=1)
     r = await src.query("notes", ["id"], open_notes, None, limit=50, offset=0)
     assert r.limit == 1 and r.returned == 1 and r.has_more
     r2 = await src.query("notes", None, open_notes, None, limit=50, offset=1)
     assert [row["id"] for row in r2.rows] == [2] and not r2.has_more
+
+
+async def test_query_sends_validated_ordering() -> None:
+    fake = FakePostgrest(sample_tables())
+    src = make_source(fake)
+    await src.query("notes", None, None, [OrderBy(column="id", direction="desc")], 5, 0)
+    assert "order=id.desc" in str(fake.requests[-1].url)
 
 
 async def test_query_rejects_bad_identifiers() -> None:
@@ -87,6 +149,12 @@ async def test_search_across_configured_tables() -> None:
     assert [i.id for i in items] == ["notes:1"]
     assert items[0].title == "Alpha plan" and items[0].snippet == "ship the MCP server"
     assert await make_source(FakePostgrest(sample_tables())).search("x", 5) == []
+
+
+async def test_search_rejects_a_query_that_becomes_empty() -> None:
+    src = make_source(FakePostgrest(sample_tables()), SUPABASE_SEARCH_COLUMNS="notes:title")
+    with pytest.raises(ValidationFailed, match="empty after sanitising"):
+        await src.search("   ", 5)
 
 
 async def test_search_survives_a_failing_table() -> None:
@@ -124,6 +192,16 @@ async def test_insert_other_table_and_bad_keys_rejected() -> None:
         await src.insert("secrets", [{"value": "x"}], dry_run=False)
     with pytest.raises(ValidationFailed):
         await src.insert("notes", [{"a b": 1}], dry_run=False)
+
+
+async def test_insert_rejects_empty_rows_before_network_access() -> None:
+    fake = FakePostgrest(sample_tables())
+    src = make_source(fake, **WRITE)
+    with pytest.raises(ValidationFailed, match="at least one row"):
+        await src.insert("notes", [], dry_run=True)
+    with pytest.raises(ValidationFailed, match="must not be empty"):
+        await src.insert("notes", [{}], dry_run=True)
+    assert not fake.requests
 
 
 async def test_update_requires_dry_run_confirmation() -> None:
@@ -217,8 +295,15 @@ async def test_get_retries_once_on_503() -> None:
 
 async def test_health_variants() -> None:
     assert await make_source(FakePostgrest(sample_tables())).health() == "reachable"
+    assert (
+        await make_source(FakePostgrest(sample_tables()), SUPABASE_ALLOWED_TABLES="notes").health()
+        == "reachable"
+    )
     restricted = make_source(FakePostgrest(sample_tables(), openapi=False))
     assert "restricted" in (await restricted.health() or "")
+    key_unverified = FakePostgrest(sample_tables())
+    key_unverified.fail_with = 401
+    assert "key not verified" in (await make_source(key_unverified).health() or "")
     fake = FakePostgrest(sample_tables())
     fake.fail_with = 401
     with pytest.raises(ProviderError):

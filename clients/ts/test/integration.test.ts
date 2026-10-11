@@ -9,6 +9,7 @@ import { ScriptedModel, call } from "./helpers.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const python = process.env.NEXUS_PYTHON ?? resolve(root, ".venv/bin/python");
+const sourcePath = resolve(root, "src");
 const available = existsSync(python);
 
 describe.skipIf(!available)("against the real server (demo mode)", () => {
@@ -17,7 +18,7 @@ describe.skipIf(!available)("against the real server (demo mode)", () => {
     conn = await NexusConnection.connectStdio({
       command: python,
       args: ["-m", "nexus_mcp"],
-      env: { NEXUS_DEMO_MODE: "true", NEXUS_LOG_LEVEL: "WARNING" },
+      env: { NEXUS_DEMO_MODE: "true", NEXUS_LOG_LEVEL: "WARNING", PYTHONPATH: sourcePath },
     });
   }, 30_000);
   afterAll(async () => {

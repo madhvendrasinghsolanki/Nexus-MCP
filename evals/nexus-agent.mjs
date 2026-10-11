@@ -44,6 +44,7 @@ export default class NexusAgentProvider {
         // below points at a closed loopback port: a write could never reach a real database.
         NEXUS_ALLOW_WRITES: "true",
         NEXUS_ALLOW_DELETES: "true",
+        PYTHONPATH: path.join(root, "src"),
         SUPABASE_URL: "http://127.0.0.1:9",
         SUPABASE_KEY: "eval-dummy-key-not-a-secret",
         SUPABASE_WRITABLE_TABLES: "notes",

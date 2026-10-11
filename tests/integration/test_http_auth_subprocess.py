@@ -2,6 +2,7 @@
 
 import asyncio
 import sys
+from pathlib import Path
 
 import httpx
 import pytest
@@ -10,6 +11,7 @@ from tests.integration.test_http_transport import free_port, wait_listening
 
 pytestmark = pytest.mark.integration
 TOKEN = "s3cure-" + "x" * 40
+SOURCE_ROOT = str(Path(__file__).resolve().parents[2] / "src")
 INIT = {
     "jsonrpc": "2.0",
     "id": 1,
@@ -27,8 +29,13 @@ async def test_http_requires_token_and_valid_host() -> None:
     port = free_port()
     proc = await asyncio.create_subprocess_exec(
         sys.executable, "-m", "nexus_mcp", "--transport", "streamable-http",
-        env={"NEXUS_DEMO_MODE": "true", "NEXUS_PORT": str(port), "NEXUS_HTTP_AUTH_TOKEN": TOKEN,
-             "PATH": "/usr/bin:/bin"},
+        env={
+            "NEXUS_DEMO_MODE": "true",
+            "NEXUS_PORT": str(port),
+            "NEXUS_HTTP_AUTH_TOKEN": TOKEN,
+            "PATH": "/usr/bin:/bin",
+            "PYTHONPATH": SOURCE_ROOT,
+        },
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
     )  # fmt: skip
     url = f"http://127.0.0.1:{port}/mcp"

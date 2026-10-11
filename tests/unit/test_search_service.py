@@ -27,6 +27,15 @@ async def test_merges_and_ranks_across_sources() -> None:
     assert res.items[0].score >= res.items[1].score  # type: ignore[operator]
 
 
+async def test_empty_results_are_successful_and_not_partial() -> None:
+    svc, _ = service(make_fake("empty"))
+
+    res = await svc.search("does-not-exist")
+
+    assert res.items == [] and not res.partial
+    assert res.sources[0].ok and res.sources[0].returned == 0
+
+
 async def test_one_failing_source_yields_partial_results() -> None:
     svc, _ = service(
         make_fake("good", [item("good", "1", "hit")]),

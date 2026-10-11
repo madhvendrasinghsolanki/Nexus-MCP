@@ -13,6 +13,7 @@ import { OpenAICompatModel } from "../src/models/openai.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const python = process.env.NEXUS_PYTHON ?? resolve(root, ".venv/bin/python");
+const sourcePath = resolve(root, "src");
 
 describe.skipIf(!existsSync(python))("real HTTP model endpoint + real server", () => {
   let http: Server;
@@ -43,7 +44,7 @@ describe.skipIf(!existsSync(python))("real HTTP model endpoint + real server", (
     const conn = await NexusConnection.connectStdio({
       command: python,
       args: ["-m", "nexus_mcp"],
-      env: { NEXUS_DEMO_MODE: "true", NEXUS_LOG_LEVEL: "WARNING" },
+       env: { NEXUS_DEMO_MODE: "true", NEXUS_LOG_LEVEL: "WARNING", PYTHONPATH: sourcePath },
     });
     try {
       const run = await runAgent({
@@ -66,7 +67,10 @@ describe.skipIf(!existsSync(python))("real HTTP model endpoint + real server", (
       "node",
       [cli, "Why PostgreSQL?", "--provider", "openai", "--base-url", baseUrl, "--model", "stub", "--demo",
        "--", python, "-m", "nexus_mcp"],
-      { env: { ...process.env, NEXUS_LOG_LEVEL: "WARNING" }, timeout: 30_000 },
+      {
+        env: { ...process.env, NEXUS_LOG_LEVEL: "WARNING", PYTHONPATH: sourcePath },
+        timeout: 30_000,
+      },
     );
     expect(stdout).toContain("PostgreSQL");
   }, 40_000);

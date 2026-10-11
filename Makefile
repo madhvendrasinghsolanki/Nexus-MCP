@@ -6,13 +6,15 @@ lint:
 type:
 	mypy
 test:
-	pytest -q
+	PYTHONPATH=src pytest -q
 test-unit:
-	pytest -q tests/unit
+	PYTHONPATH=src pytest -q tests/unit
 test-integration:
-	pytest -q -m integration
+	PYTHONPATH=src pytest -q -m integration
 coverage:
-	pytest -q --cov --cov-fail-under=95
+	mkdir -p reports
+	PYTHONPATH=src pytest -q --cov=src/nexus_mcp --cov-branch --cov-report=term-missing --cov-report=xml:reports/coverage.xml --cov-report=json:reports/coverage.json --cov-report=html:reports/htmlcov --junitxml=reports/pytest.xml --cov-fail-under=95
+	PYTHONPATH=src python scripts/coverage_report.py reports/coverage.json --junitxml reports/pytest.xml --output-json reports/quality.json
 snapshots:
 	UPDATE_SNAPSHOTS=1 pytest -q tests/integration/test_tool_surface_contract.py
 live:

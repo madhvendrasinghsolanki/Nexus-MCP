@@ -14,7 +14,7 @@ from nexus_mcp.core.errors import (
 )
 from nexus_mcp.providers.notion import NotionSource, create_notion_source
 from nexus_mcp.providers.notion.models import FilterOp, NotionFilter, NotionSort
-from tests.support.notion_fake import DB, P1, P2, P3, PARENT_PAGE, FakeNotion
+from tests.support.notion_fake import DB, P1, P2, P3, PARENT_PAGE, FakeNotion, para
 
 
 def make(fake: FakeNotion, **env: Any) -> NotionSource:
@@ -60,6 +60,13 @@ async def test_get_page_with_content() -> None:
 async def test_get_page_truncates_at_max_blocks() -> None:
     page = await make(FakeNotion()).get_page(P1, True, 2)
     assert page.content_truncated and page.content == "# Plan\n\nDo the thing"
+
+
+async def test_get_page_truncates_oversized_rendered_content() -> None:
+    fake = FakeNotion()
+    fake.blocks[P1] = [para("x" * 1_100)]
+    page = await make(fake, NEXUS_MAX_PAYLOAD_BYTES=1_000).get_page(P1, True, 100)
+    assert page.content_truncated and page.content.endswith("[content truncated]")
 
 
 async def test_get_page_accepts_url_and_reports_not_found() -> None:
@@ -152,6 +159,11 @@ async def test_update_flow_with_version_check() -> None:
     # stale after the page changed
     with pytest.raises(ConfirmationRequired):
         await src.update_page(P1, {"Status": "Todo"}, False, dry.last_edited_time)
+
+
+async def test_update_requires_at_least_one_property() -> None:
+    with pytest.raises(ValidationFailed, match="must not be empty"):
+        await make(FakeNotion(), **RW).update_page(P1, {}, True, None)
 
 
 async def test_update_page_under_page_only_title_and_scope_enforced() -> None:
@@ -254,3 +266,10 @@ async def test_get_item_page_and_database() -> None:
     assert doc.metadata["object"] == "page" and doc.fields["Priority"] == 2
     db = await src.get(DB)
     assert db.metadata["object"] == "database" and "Status (status): Todo, Done" in db.content
+
+
+async def test_database_fallback_does_not_hide_database_errors() -> None:
+    fake = FakeNotion()
+    fake.fail_queue = [400, 401]
+    with pytest.raises(ProviderError):
+        await make(fake).get(DB)

@@ -9,7 +9,7 @@ import pytest
 
 from nexus_mcp.core.errors import NotFound, ProviderError, UpstreamTimeout, ValidationFailed
 from nexus_mcp.providers.notion.client import NotionClient
-from nexus_mcp.providers.supabase.client import PostgrestClient
+from nexus_mcp.providers.supabase.client import PostgrestClient, auth_headers
 
 Handler = Callable[[httpx.Request], httpx.Response]
 
@@ -132,3 +132,11 @@ async def test_supabase_status_mapping(status: int, body: dict[str, str], expect
     client = _supabase(lambda r: httpx.Response(status, json=body))
     with pytest.raises(expected):
         await client.request("POST", "/t", json={})
+
+
+def test_supabase_publishable_keys_are_not_sent_as_bearer_tokens() -> None:
+    assert auth_headers("sb_publishable_example") == {"apikey": "sb_publishable_example"}
+    assert auth_headers("legacy-key") == {
+        "apikey": "legacy-key",
+        "Authorization": "Bearer legacy-key",
+    }

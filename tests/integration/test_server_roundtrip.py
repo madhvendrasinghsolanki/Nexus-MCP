@@ -1,12 +1,26 @@
 """Full MCP round trip using the real client against the in-process server."""
 
+from __future__ import annotations
+
 import pytest
 from mcp import Client
 
+from nexus_mcp.providers.registry import ProviderRegistry
 from nexus_mcp.server import create_server
 from tests.conftest import FakeSource
 
 pytestmark = pytest.mark.integration
+
+
+class ClosingSource(FakeSource):
+    name = "closing"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.closed = False
+
+    async def aclose(self) -> None:
+        self.closed = True
 
 
 async def test_tools_listed_with_read_only_annotations(settings, registry) -> None:  # type: ignore[no-untyped-def]
@@ -44,3 +58,14 @@ async def test_works_with_zero_providers(settings) -> None:  # type: ignore[no-u
     async with Client(create_server(settings, ProviderRegistry())) as client:
         result = await client.call_tool("list_sources", {})
     assert not result.is_error
+
+
+async def test_server_lifespan_closes_registered_providers(settings) -> None:  # type: ignore[no-untyped-def]
+    source = ClosingSource()
+    registry = ProviderRegistry()
+    registry.register(source)
+
+    async with Client(create_server(settings, registry)) as client:
+        assert not (await client.call_tool("server_info", {})).is_error
+
+    assert source.closed
