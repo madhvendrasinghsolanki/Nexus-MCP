@@ -15,9 +15,15 @@ I got tired of copy-pasting context between Notion, Supabase, and whatever AI I 
 ## Try it (no accounts needed)
 
 ```bash
-git clone https://github.com/madhvendrasinghsolanki/nexus-mcp && cd nexus-mcp
-python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-NEXUS_DEMO_MODE=true .venv/bin/nexus-mcp --check-config
+git clone https://github.com/madhvendrasinghsolanki/Nexus-MCP.git
+cd Nexus-MCP
+
+python -m venv .venv
+source .venv/bin/activate
+
+pip install -e ".[dev]"
+
+NEXUS_DEMO_MODE=true nexus-mcp --check-config
 ```
 
 Demo mode has two fake sources — a wiki and a ticket tracker. Good enough to poke around.
