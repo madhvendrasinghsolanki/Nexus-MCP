@@ -22,6 +22,19 @@ _RETRY_STATUS = {502, 503, 504}
 _MAX_DETAIL = 240
 
 
+class AccessDenied(ProviderError):
+    """HTTP 401/403: the key was refused for THIS request (not necessarily for every request)."""
+
+
+def auth_headers(api_key: str) -> dict[str, str]:
+    """Legacy anon/service keys are JWTs and also go in `Authorization`. The newer
+    `sb_publishable_` / `sb_secret_` keys are NOT JWTs: sending them as a Bearer token makes the
+    platform try to parse them as one and answer 401, so they travel in `apikey` only."""
+    if api_key.startswith("sb_"):
+        return {"apikey": api_key}
+    return {"apikey": api_key, "Authorization": f"Bearer {api_key}"}
+
+
 class PostgrestClient:
     def __init__(
         self,
@@ -34,7 +47,7 @@ class PostgrestClient:
         self._schema = schema
         self._http = httpx.AsyncClient(
             base_url=f"{base_url}/rest/v1",
-            headers={"apikey": api_key, "Authorization": f"Bearer {api_key}"},
+            headers=auth_headers(api_key),
             timeout=httpx.Timeout(timeout_s),
             transport=transport,
             follow_redirects=False,
@@ -104,7 +117,7 @@ class PostgrestClient:
 
         err: NexusError
         if status == 401 or status == 403 or code == "42501":
-            err = ProviderError(
+            err = AccessDenied(
                 "Supabase denied access.",
                 hint="Check SUPABASE_KEY and the table's Row Level Security policies.",
             )
