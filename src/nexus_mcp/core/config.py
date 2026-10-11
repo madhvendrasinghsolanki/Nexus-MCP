@@ -27,7 +27,6 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
-        env_ignore_empty=True,
     )
 
     # Server
@@ -95,6 +94,12 @@ class Settings(BaseSettings):
         if not parsed.hostname or parsed.username or parsed.password:
             raise ValueError("SUPABASE_URL must be a plain host URL without credentials")
         return v.rstrip("/")
+
+    @field_validator("http_auth_token", "supabase_key", "notion_token", mode="before")
+    @classmethod
+    def _blank_secret_is_unset(cls, v: object) -> object:
+        """A blank `.env` value (e.g. `NEXUS_HTTP_AUTH_TOKEN=`) means "not set", on any version."""
+        return None if isinstance(v, str) and not v.strip() else v
 
     @field_validator("http_auth_token")
     @classmethod
