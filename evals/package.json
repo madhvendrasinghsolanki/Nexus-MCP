@@ -1,0 +1,14 @@
+{
+  "name": "nexus-evals",
+  "private": true,
+  "type": "module",
+  "description": "Promptfoo evaluations for Nexus MCP: tool use, grounding, injection resistance, write safety",
+  "scripts": {
+    "selftest": "rm -f out/selftest.json; promptfoo eval -c selftest.yaml --no-cache --no-progress-bar -o out/selftest.json || true",
+    "eval": "promptfoo eval -c promptfooconfig.yaml",
+    "view": "promptfoo view"
+  },
+  "devDependencies": {
+    "promptfoo": "0.124.1"
+  }
+}

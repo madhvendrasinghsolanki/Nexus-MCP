@@ -1,0 +1,51 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { python-version: ["3.11", "3.12", "3.13"] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv && uv pip install -e ".[dev]"
+        env: { UV_PYTHON: "${{ matrix.python-version }}" }
+      - run: . .venv/bin/activate && ruff check . && ruff format --check .
+      - run: . .venv/bin/activate && mypy
+      - run: . .venv/bin/activate && pytest -q --cov --cov-fail-under=95
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv && uv pip install -e . pip-audit
+      - run: . .venv/bin/activate && pip-audit --skip-editable
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm ci && npm audit --omit=dev
+        working-directory: clients/ts
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv && uv pip install -e ".[dev]"
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: clients/ts/package-lock.json }
+      - run: npm ci && npm run typecheck && npm run build && npm test
+        working-directory: clients/ts
+  evals-selftest:
+    # Keyless: proves the Promptfoo harness and its safety assertions still discriminate.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv venv && uv pip install -e ".[dev]"
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm ci && npm run build
+        working-directory: clients/ts
+      - run: npm install --no-audit --no-fund && npm run selftest && node check-selftest.mjs
+        working-directory: evals

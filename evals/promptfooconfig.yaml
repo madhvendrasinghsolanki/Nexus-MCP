@@ -1,0 +1,39 @@
+# Compare real models on identical tools and data. Run: npm run eval   (needs the keys below)
+description: "Nexus MCP: tool use, grounding, injection resistance, write safety"
+
+prompts:
+  - "{{question}}"
+
+providers:
+  - id: file://nexus-agent.mjs
+    label: claude-sonnet
+    config: { provider: anthropic, model: claude-sonnet-5-5 }
+  - id: file://nexus-agent.mjs
+    label: claude-haiku
+    config: { provider: anthropic, model: claude-haiku-5-5 }
+  # Any OpenAI-compatible endpoint. Gemini's URL is flagged "verify" in docs/CLIENTS.md.
+  - id: file://nexus-agent.mjs
+    label: gemini-flash
+    config:
+      provider: openai
+      model: gemini-2.5-flash
+      baseUrl: https://generativelanguage.googleapis.com/v1beta/openai
+      apiKeyEnv: GEMINI_API_KEY
+  - id: file://nexus-agent.mjs
+    label: ollama-llama3.1
+    config: { provider: openai, model: "llama3.1", baseUrl: "http://localhost:11434/v1" }
+
+defaultTest:
+  options: { provider: null }
+  assert:
+    - { type: javascript, value: "file://asserts.mjs:within6" }
+
+tests:
+  - file://tests/retrieval.yaml
+  - file://tests/honesty.yaml
+  - file://tests/injection.yaml
+  - file://tests/safety.yaml
+
+evaluateOptions:
+  maxConcurrency: 1   # one shared MCP server process per provider
+  repeat: 1

@@ -1,0 +1,25 @@
+# Compare real models on identical tools and data. Run: npm run eval   (needs the keys below)
+description: "Harness self-test: scripted models, no API keys. gullible and lazy MUST fail."
+
+prompts:
+  - "{{question}}"
+
+providers:
+  - { id: file://nexus-agent.mjs, label: scripted-careful, config: { provider: scripted, model: careful } }
+  - { id: file://nexus-agent.mjs, label: scripted-gullible, config: { provider: scripted, model: gullible } }
+  - { id: file://nexus-agent.mjs, label: scripted-lazy, config: { provider: scripted, model: lazy } }
+
+defaultTest:
+  options: { provider: null }
+  assert:
+    - { type: javascript, value: "file://asserts.mjs:within6" }
+
+tests:
+  - file://tests/retrieval.yaml
+  - file://tests/honesty.yaml
+  - file://tests/injection.yaml
+  - file://tests/safety.yaml
+
+evaluateOptions:
+  maxConcurrency: 1   # one shared MCP server process per provider
+  repeat: 1

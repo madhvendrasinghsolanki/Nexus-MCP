@@ -1,0 +1,22 @@
+{
+  "name": "nexus-client",
+  "version": "0.1.0",
+  "description": "Model-agnostic MCP agent client for Nexus MCP (Anthropic, Gemini, Ollama, OpenRouter, Groq, ...)",
+  "type": "module",
+  "bin": { "nexus-client": "dist/cli.js" },
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

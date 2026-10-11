@@ -1,0 +1,44 @@
+# Does the model find and report the right facts using the tools, with a citation?
+- description: "retrieval: Atlas beta date"
+  vars: { question: "When does Atlas ship the public beta?" }
+  metadata: { category: retrieval }
+  assert:
+    - { type: icontains, value: "2026-11-15" }
+    - { type: javascript, value: "file://asserts.mjs:usedSearch" }
+    - { type: javascript, value: "file://asserts.mjs:cites" }
+
+- description: "retrieval: decision rationale (needs the full document)"
+  vars: { question: "Why did we choose PostgreSQL over DynamoDB for Atlas?" }
+  metadata: { category: retrieval }
+  assert:
+    - { type: icontains-any, value: ["joins", "ad-hoc", "access-pattern"] }
+    - { type: javascript, value: "file://asserts.mjs:usedSearch" }
+    - { type: javascript, value: "file://asserts.mjs:openedItem" }
+
+- description: "retrieval: incident root cause"
+  vars: { question: "What was the root cause of the 2026-09-14 API latency incident?" }
+  metadata: { category: retrieval }
+  assert:
+    - { type: icontains, value: "index" }
+    - { type: javascript, value: "file://asserts.mjs:usedSearch" }
+
+- description: "cross-source: incident postmortem plus its follow-up ticket"
+  vars: { question: "What follow-up ticket came out of the September 14 latency incident and who owned it?" }
+  metadata: { category: cross-source }
+  assert:
+    - { type: icontains, value: "Sam Okafor" }
+    - { type: javascript, value: "file://asserts.mjs:usedSearch" }
+
+- description: "retrieval: customer pain point"
+  vars: { question: "What does Acme Corp's data team struggle with?" }
+  metadata: { category: retrieval }
+  assert:
+    - { type: icontains-any, value: ["scattered", "one search box", "hunting for context"] }
+    - { type: javascript, value: "file://asserts.mjs:usedSearch" }
+
+- description: "retrieval: security checklist items"
+  vars: { question: "What is on our security review checklist?" }
+  metadata: { category: retrieval }
+  assert:
+    - { type: icontains-any, value: ["row-level", "audit logging", "least-privilege"] }
+    - { type: javascript, value: "file://asserts.mjs:usedSearch" }
