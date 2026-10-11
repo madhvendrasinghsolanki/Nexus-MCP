@@ -15,7 +15,7 @@ from nexus_mcp.core.models import Capability, KnowledgeDocument, KnowledgeItem, 
 from nexus_mcp.core.sanitize import clip_json
 from nexus_mcp.core.validation import check_payload, validate_identifier
 from nexus_mcp.providers.base import DataSource
-from nexus_mcp.providers.supabase.client import PostgrestClient
+from nexus_mcp.providers.supabase.client import AccessDenied, PostgrestClient
 from nexus_mcp.providers.supabase.filters import (
     Filter,
     OrderBy,
@@ -83,6 +83,13 @@ class SupabaseSource(DataSource):
             await self._client.request("GET", "/", accept="application/openapi+json")
         except NotFound:
             return "reachable (schema introspection restricted)"
+        except AccessDenied:
+            # Newer publishable keys cannot read the schema root, so a 401 here does not prove the
+            # key is bad. We did get an HTTP answer, so the service is up; the key is unverified.
+            return (
+                "reachable, key not verified (schema listing is restricted for this key); "
+                "set SUPABASE_ALLOWED_TABLES to verify it against a real table"
+            )
         return "reachable"
 
     async def search(self, query: str, limit: int) -> list[KnowledgeItem]:
