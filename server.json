@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.madhvendrasinghsolanki/nexus-mcp",
+  "title": "Nexus MCP",
+  "description": "Search Notion and Supabase through one safety-focused MCP server.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/madhvendrasinghsolanki/Nexus-MCP",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/madhvendrasinghsolanki/Nexus-MCP",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "nexus-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

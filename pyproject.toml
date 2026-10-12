@@ -9,6 +9,16 @@ description = "Modular MCP server unifying Notion and Supabase as searchable, sa
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+authors = [{ name = "Madhvendra Singh Solanki" }]
+keywords = ["mcp", "notion", "supabase"]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
 dependencies = [
   "mcp>=2.3,<3",
   "httpx>=0.27",
@@ -31,6 +41,11 @@ dev = [
 
 [project.scripts]
 nexus-mcp = "nexus_mcp.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/madhvendrasinghsolanki/Nexus-MCP"
+Repository = "https://github.com/madhvendrasinghsolanki/Nexus-MCP"
+Issues = "https://github.com/madhvendrasinghsolanki/Nexus-MCP/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nexus_mcp"]

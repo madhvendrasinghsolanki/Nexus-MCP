@@ -5,6 +5,45 @@ on:
 permissions:
   contents: read
 jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build and validate distributions
+        run: |
+          uv build
+          uvx --from twine twine check dist/*
+          test "$(find dist -name '*.whl' | wc -l)" -eq 1
+          test "$(find dist -name '*.tar.gz' | wc -l)" -eq 1
+      - name: Install and exercise wheel and sdist
+        shell: bash
+        run: |
+          set -euo pipefail
+          for artifact in dist/*.whl dist/*.tar.gz; do
+            temp_dir=$(mktemp -d)
+            trap 'rm -rf "$temp_dir"' EXIT
+            uv venv "$temp_dir/venv" --python 3.11
+            uv pip install --python "$temp_dir/venv/bin/python" "$artifact"
+            "$temp_dir/venv/bin/nexus-mcp" --check-config
+            NEXUS_DEMO_MODE=true "$temp_dir/venv/bin/nexus-mcp" --check-config
+            uvx --from "$artifact" nexus-mcp --check-config
+            PATH="$temp_dir/venv/bin:$PATH" NEXUS_DEMO_MODE=true "$temp_dir/venv/bin/python" - <<'PY'
+          import os
+          import subprocess
+          import time
+
+          environment = {**os.environ, "NEXUS_DEMO_MODE": "true"}
+          process = subprocess.Popen(["nexus-mcp"], stdin=subprocess.PIPE, env=environment)
+          time.sleep(1)
+          if process.poll() is not None:
+              raise SystemExit("demo-mode server exited before startup completed")
+          process.terminate()
+          process.wait(timeout=5)
+          PY
+            rm -rf "$temp_dir"
+            trap - EXIT
+          done
   python:
     runs-on: ubuntu-latest
     strategy:

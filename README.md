@@ -2,6 +2,8 @@
 
 MCP server for Notion + Supabase. One search across both, writes are off by default because I don't trust models with my data.
 
+<!-- mcp-name: io.github.madhvendrasinghsolanki/nexus-mcp -->
+
 [![CI](https://github.com/madhvendrasinghsolanki/Nexus-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/madhvendrasinghsolanki/Nexus-MCP/actions/workflows/ci.yml)
 
 ---
@@ -38,6 +40,47 @@ claude mcp add --transport stdio --env NEXUS_DEMO_MODE=true nexus \
 Then try: *"What was the root cause of the September API latency incident, and which ticket tracked the fix?"*
 
 It has to search both sources and cross-reference. Works surprisingly well.
+
+## Install the published package
+
+Install from PyPI with `pip`:
+
+```bash
+python -m pip install nexus-mcp
+nexus-mcp --check-config
+```
+
+Or run it without a permanent installation using `uvx`:
+
+```bash
+uvx nexus-mcp --check-config
+NEXUS_DEMO_MODE=true uvx nexus-mcp --check-config
+```
+
+Demo mode needs no credentials. For real data, provide your own credentials: `NOTION_TOKEN` enables Notion, while `SUPABASE_URL` and `SUPABASE_KEY` enable Supabase. Copy [.env.example](.env.example) for the complete configuration reference, then run `nexus-mcp --check-config` to validate it without printing secret values.
+
+Claude Code can use the installed command through `uvx`:
+
+```bash
+claude mcp add --transport stdio --env NEXUS_DEMO_MODE=true nexus \
+  -- uvx nexus-mcp
+```
+
+The equivalent MCP client configuration is:
+
+```json
+{
+  "mcpServers": {
+    "nexus": {
+      "command": "uvx",
+      "args": ["nexus-mcp"],
+      "env": {"NEXUS_DEMO_MODE": "true"}
+    }
+  }
+}
+```
+
+Nexus starts in safe mode: writes and deletes are disabled unless explicitly enabled with their safety gates and allowlists. HTTP binds to loopback by default; a non-loopback HTTP listener requires a 32-character bearer token.
 
 ---
 
