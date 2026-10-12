@@ -12,7 +12,7 @@
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "nexus-mcp",
+      "identifier": "nexus-mcp-notion-supabase",
       "version": "0.1.0",
       "runtimeHint": "uvx",
       "transport": {

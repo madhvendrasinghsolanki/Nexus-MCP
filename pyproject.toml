@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "nexus-mcp"
+name = "nexus-mcp-notion-supabase"
 version = "0.1.0"
 description = "Modular MCP server unifying Notion and Supabase as searchable, safely-writable knowledge sources."
 readme = "README.md"
