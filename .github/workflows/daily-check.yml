@@ -1,0 +1,27 @@
+name: Daily Repository Health Check
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-check:
+    name: Check Repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check repository files
+        run: |
+          echo "Repository health check started."
+          test -f README.md
+          echo "README.md exists."
+          echo "Repository check completed successfully."
