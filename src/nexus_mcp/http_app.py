@@ -36,6 +36,24 @@ class BearerAuthMiddleware:
         if scope["type"] != "http":  # lifespan / websocket pass through
             await self.app(scope, receive, send)
             return
+            
+        # Public, read-only health check for uptime monitoring.
+        if scope.get("path") == "/health" and scope.get("method") == "GET":
+            body = b'{"status":"ok"}'
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        (b"content-length", str(len(body)).encode()),
+                        (b"cache-control", b"no-store"),
+                    ],
+                }
+            )
+            await send({"type": "http.response.body", "body": body})
+            return
+
         supplied = ""
         for name, value in scope.get("headers", []):
             if name == b"authorization":
