@@ -3,7 +3,6 @@
 MCP server for Notion + Supabase. One search across both, writes are off by default because I don't trust models with my data.
 
 [![Nexus MCP server](https://mcprush.com/badge/madhvendrasingholanki-nexus-mcp/card.svg)](https://mcprush.com/to/madhvendrasingholanki-nexus-mcp?ref=badge)
-
 <!-- mcp-name: io.github.madhvendrasinghsolanki/nexus-mcp -->
 
 [![CI](https://github.com/madhvendrasinghsolanki/Nexus-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/madhvendrasinghsolanki/Nexus-MCP/actions/workflows/ci.yml)
